@@ -62,3 +62,11 @@ jobs:
         git add data/Timeslot.xlsx
         git commit -m "Update Timeslot.xlsx with latest changes"
         git push origin HEAD:main
+
+    - name: Close the issue
+      if: env.is_weekday == 'true' && env.changes_detected == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ISSUE_NUMBER=$(echo ${{ github.event.issue.number }})
+        curl -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUMBER -d '{"state":"closed"}'
