@@ -1,0 +1,64 @@
+name: Timeslot Tracker
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  track-changes:
+    if: contains(github.event.issue.title, 'Timeslot modified')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # To fetch all history for comparing changes
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install openpyxl requests
+    
+    - name: Check if today is a weekday
+      id: weekday-check
+      run: |
+        DAY_OF_WEEK=$(date +%u)
+        if [ "$DAY_OF_WEEK" -ge 1 ] && [ "$DAY_OF_WEEK" -le 5 ]; then
+          echo "is_weekday=true" >> $GITHUB_ENV
+        else
+          echo "is_weekday=false" >> $GITHUB_ENV
+        fi
+
+    - name: Download files from OneDrive
+      if: env.is_weekday == 'true'
+      run: |
+        wget -O timeslot.xlsx ${{ secrets.ONEDRIVE_LINK }}
+    
+    - name: Compare Excel Files
+      if: env.is_weekday == 'true'
+      id: compare
+      run: |
+        python compare_excel.py timeslot.xlsx data/Timeslot.xlsx
+
+    - name: Notify Teams
+      if: env.is_weekday == 'true' && env.changes_detected == 'true'
+      run: |
+        python notify_teams.py "$WEBHOOK_URL" changes.txt
+      env:
+        WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+
+    - name: Move and commit new Timeslot.xlsx
+      if: env.is_weekday == 'true' && env.changes_detected == 'true'
+      run: |
+        mv timeslot.xlsx data/Timeslot.xlsx
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add data/Timeslot.xlsx
+        git commit -m "Update Timeslot.xlsx with latest changes"
+        git push origin HEAD:main
