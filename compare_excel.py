@@ -11,8 +11,8 @@ def compare_excel_files(new_file_path, old_file_path):
 
     changes = []
 
-    # Read dates from row 5, columns E to K
-    dates = [sheet_new.cell(row=5, column=col).value.date() for col in range(5, 12)]
+    # Read dates from row 5, columns E to K, and skip None values
+    dates = [sheet_new.cell(row=5, column=col).value.date() if sheet_new.cell(row=5, column=col).value is not None else None for col in range(5, 12)]
 
     for row in range(7, 45):  # Rows 7 to 44
         for col in range(5, 12):  # Columns E to K
@@ -25,17 +25,19 @@ def compare_excel_files(new_file_path, old_file_path):
                     # Extract the relevant date
                     date = dates[col - 5]
 
-                    # Extract start and end times
-                    start_time = sheet_new.cell(row=row, column=2).value
-                    end_time = sheet_new.cell(row=row, column=4).value
+                    # Only proceed if date is not None
+                    if date is not None:
+                        # Extract start and end times
+                        start_time = sheet_new.cell(row=row, column=2).value
+                        end_time = sheet_new.cell(row=row, column=4).value
 
-                    changes.append({
-                        "date": date,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                        "old_value": old_value,
-                        "new_value": new_value
-                    })
+                        changes.append({
+                            "date": date,
+                            "start_time": start_time,
+                            "end_time": end_time,
+                            "old_value": old_value,
+                            "new_value": new_value
+                        })
 
     with open('changes.txt', 'w') as f:
         for change in changes:
