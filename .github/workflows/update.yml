@@ -1,0 +1,29 @@
+name: Update latest data
+
+on:
+  schedule:
+    - cron: '55 15 * * 0'
+  watch:
+    types: [started]
+
+jobs:
+  update-timeslot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # To fetch all history for comparing changes
+
+    - name: Download files from OneDrive
+      run: |
+        wget -O data/Timeslot.xlsx ${{ secrets.ONEDRIVE_LINK }}
+
+    - name: Commit latest Timeslot
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add data/Timeslot.xlsx
+        git commit -m "Update Timeslot" -m "Latest Timeslot by 11:55PM Sunday"
+        git push origin HEAD:main
